@@ -14,13 +14,16 @@ static void
 print_template_info(Template *t)
 {
     int i;
+    // Filename, dimension, number of holes
     fprintf(stdout, "%s: %dx%d\n%d holes found\n", t->filename, t->width,
             t->height, t->hole_count);
+    // Hole sizes and locations
     for(i = 0; i<t->hole_count; i++)
         fprintf(stdout, "    Start @ (%d, %d),\tsize %dx%d\n",
                 t->hole_pos[i][0], t->hole_pos[i][1],
                 t->hole_size[i][0], t->hole_size[i][1]);
 
+    // Indicate first/last template
     if(t->was_first && t->was_last)
         fprintf(stdout, "This is the only template.\n\n");
     else if(t->was_first)
@@ -30,6 +33,7 @@ print_template_info(Template *t)
     else
         fprintf(stdout, "\n");
 
+    // Recurse
     if(!t->was_last)
         print_template_info(t->next);
 }
@@ -44,7 +48,8 @@ get_holes_from_alpha(Template *t, int **alpha_map)
     {
         for(j = 0; j<t->width-1; j++)
         {
-            if(((i == 0 && j == 0) || //start on top-left corner
+            // Start (upper left corner) of the hole
+            if(((i == 0 && j == 0) || //start on top-left corner of image
                 (i == 0 && j > 0 && alpha_map[i][j-1]) || //start on top edge
                 (i > 0 && j == 0 && alpha_map[i-1][j]) || //start on left edge
                 (i > 0 && j > 0 && alpha_map[i-1][j] &&
@@ -69,6 +74,7 @@ get_holes_from_alpha(Template *t, int **alpha_map)
                 pos[1] = j;
                 t->hole_pos[t->hole_count] = pos;
 
+                // Getting width and height of the hole
                 int *size = malloc(sizeof(int)*2);
                 size[0] = 0;
                 size[1] = 0;
@@ -98,6 +104,7 @@ scan_holes(Template *t, MagickWand *wand)
     int **alpha_map = malloc(sizeof(int *)*t->width);
     PixelWand *pw = NewPixelWand();
 
+    // Map alpha value of every pixel
     int i, j;
     for(i = 0; i<t->height; i++)
     {
@@ -113,7 +120,9 @@ scan_holes(Template *t, MagickWand *wand)
 
     DestroyPixelWand(pw);
 
+    // Finding rectangular holes in a template
     get_holes_from_alpha(t, alpha_map);
+    
     for(i = 0; i<t->height; i++)
         free(alpha_map[i]);
     free(alpha_map);
