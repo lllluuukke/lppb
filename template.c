@@ -11,7 +11,7 @@
 #define PATH_TO_TEMPLATES "./templates"
 
 static void
-print_template_info(Template *t)
+print_template_info(const Template *t)
 {
     int i;
     // Filename, dimension, number of holes
@@ -135,6 +135,7 @@ get_template_info(Template *this)
     MagickWandGenesis();
     wand = NewMagickWand();
     MagickReadImage(wand, this->filename);
+    MagickSetLastIterator(wand);
 
     this->width = (int)MagickGetImageWidth(wand);
     this->height = (int)MagickGetImageHeight(wand);
@@ -146,7 +147,7 @@ get_template_info(Template *this)
 }
 
 static Template
-*create_link(char **name, Template *this, int count)
+*create_link(char **name, Template *this, const int count)
 {
     this->filename = malloc(strlen(name[0])+1);
     strcpy(this->filename, name[0]);

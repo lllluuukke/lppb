@@ -1,5 +1,5 @@
 CC=gcc
-CCFLAGS=-Wall -g -std=c99
+CCFLAGS=-Wall -Wextra -g -std=c99
 PROD_CCFLAGS=-O3
 CFLAGS=`pkg-config --cflags gtk+-2.0`
 LIBS=`pkg-config --libs gtk+-2.0`
