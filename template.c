@@ -1,7 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
-#include<sys/types.h>
 #include<dirent.h>
 
 #include<wand/magick_wand.h>
@@ -11,12 +10,12 @@
 #define PATH_TO_TEMPLATES "./templates"
 
 static void
-print_template_info(const Template *t)
+print_template_info(const Template* t)
 {
-    int i;
+    guint16 i;
     // Filename, dimension, number of holes
-    fprintf(stdout, "%s: %dx%d\n%d holes found\n", t->filename, t->width,
-            t->height, t->hole_count);
+    fprintf(stdout, "#%d: %s, %dx%d\n  %d holes found\n", t->unique_id,
+            t->filename, t->width, t->height, t->hole_count);
     // Hole sizes and locations
     for(i = 0; i<t->hole_count; i++)
         fprintf(stdout, "    Start @ (%d, %d),\tsize %dx%d\n",
@@ -25,11 +24,11 @@ print_template_info(const Template *t)
 
     // Indicate first/last template
     if(t->was_first && t->was_last)
-        fprintf(stdout, "This is the only template.\n\n");
+        fprintf(stdout, "  This is the only template.\n\n");
     else if(t->was_first)
-        fprintf(stdout, "This is the first template.\n\n");
+        fprintf(stdout, "  This is the first template.\n\n");
     else if(t->was_last)
-        fprintf(stdout, "This is the last template.\n\n");
+        fprintf(stdout, "  This is the last template.\n\n");
     else
         fprintf(stdout, "\n");
 
@@ -39,11 +38,11 @@ print_template_info(const Template *t)
 }
 
 static void
-get_holes_from_alpha(Template *t, int **alpha_map)
+get_holes_from_alpha(Template* t, gboolean** alpha_map)
 {
     t->hole_count= 0;
 
-    int i, j;
+    guint16 i, j;
     for(i = 0; i<t->height-1; i++)
     {
         for(j = 0; j<t->width-1; j++)
@@ -58,24 +57,26 @@ get_holes_from_alpha(Template *t, int **alpha_map)
             {
                 if(!t->hole_count)
                 {
-                    t->hole_pos = malloc(sizeof(int *));
-                    t->hole_size= malloc(sizeof(int *));
+                    t->hole_pos = malloc(sizeof(guint16* ));
+                    t->hole_size= malloc(sizeof(guint16* ));
                 }
                 else
                 {
                     t->hole_pos =
-                        realloc(t->hole_pos, sizeof(int *)*(t->hole_count+1));
+                        realloc(t->hole_pos,
+                                sizeof(guint16* )*(t->hole_count+1));
                     t->hole_size =                                          
-                        realloc(t->hole_size, sizeof(int *)*(t->hole_count+1));
+                        realloc(t->hole_size,
+                                sizeof(guint16* )*(t->hole_count+1));
                 }
 
-                int *pos = malloc(sizeof(int)*2);
+                guint16* pos = malloc(sizeof(guint16)*2);
                 pos[0] = i;
                 pos[1] = j;
                 t->hole_pos[t->hole_count] = pos;
 
                 // Getting width and height of the hole
-                int *size = malloc(sizeof(int)*2);
+                guint16* size = malloc(sizeof(guint16)*2);
                 size[0] = 0;
                 size[1] = 0;
                 while(!alpha_map[i][j+size[0]])
@@ -99,16 +100,16 @@ get_holes_from_alpha(Template *t, int **alpha_map)
 }
 
 static void
-scan_holes(Template *t, MagickWand *wand)
+scan_holes(Template* t, MagickWand* wand)
 {
-    int **alpha_map = malloc(sizeof(int *)*t->width);
-    PixelWand *pw = NewPixelWand();
+    gboolean** alpha_map = malloc(sizeof(gboolean* )*t->width);
+    PixelWand* pw = NewPixelWand();
 
     // Map alpha value of every pixel
-    int i, j;
+    guint16 i, j;
     for(i = 0; i<t->height; i++)
     {
-        int *alpha_line = malloc(sizeof(int *)*t->width);
+        gboolean* alpha_line = malloc(sizeof(gboolean* )*t->width);
         for(j = 0; j<t->width; j++)
         {
             MagickGetImagePixelColor(wand, j, i, pw);
@@ -129,16 +130,16 @@ scan_holes(Template *t, MagickWand *wand)
 }
 
 static void
-get_template_info(Template *this)
+get_template_info(Template* this)
 {
-    MagickWand *wand = NULL;
+    MagickWand* wand = NULL;
     MagickWandGenesis();
     wand = NewMagickWand();
     MagickReadImage(wand, this->filename);
     MagickSetLastIterator(wand);
 
-    this->width = (int)MagickGetImageWidth(wand);
-    this->height = (int)MagickGetImageHeight(wand);
+    this->width = (guint16)MagickGetImageWidth(wand);
+    this->height = (guint16)MagickGetImageHeight(wand);
 
     scan_holes(this, wand);
 
@@ -147,13 +148,14 @@ get_template_info(Template *this)
 }
 
 static Template
-*create_link(char **name, Template *this, const int count)
+*create_link(gchar** name, Template* this, const guint8 count, const guint8 id)
 {
     this->filename = malloc(strlen(name[0])+1);
     strcpy(this->filename, name[0]);
-    free(name[0]);
 
     get_template_info(this);
+
+    this->unique_id = id;
 
     this->was_first = FALSE;
     this->was_last = FALSE;
@@ -162,19 +164,19 @@ static Template
         return this;
     else
     {
-        Template *new = malloc(sizeof(Template));
+        Template* new = malloc(sizeof(Template));
         this->next = new;
         new->prev = this;
-        return create_link(name+1, new, count-1);
+        return create_link(name+1, new, count-1, id+1);
     }
 }
 
 static char
-**list_templates(char **name, int *count_ext)
+**list_templates(gchar** name, guint8* count_ext)
 {
-    int count = 0;
-    DIR *d;
-    struct dirent *dir;
+    guint8 count = 0;
+    DIR* d;
+    struct dirent* dir;
     d = opendir(PATH_TO_TEMPLATES);
     if(d)
     {
@@ -194,7 +196,7 @@ static char
         closedir(d);
     }
 
-    *count_ext = count;
+   * count_ext = count;
     return name;
 }
 
@@ -202,16 +204,16 @@ Template
 *init_templates()
 {
     /* Read template file names from ./templates */
-    int num= 0;
-    char **names = malloc(sizeof(char*));
+    guint8 num= 0;
+    gchar** names = malloc(sizeof(char*));
 
     names = list_templates(names, &num);
     if(num == 0)
         fprintf(stderr, "ERROR: No template file found.\n");
 
     /* TEST: populate image filenames */
-    Template *first = (Template *)malloc(sizeof(Template));
-    Template *last = create_link(names, first, num);
+    Template* first = (Template* )malloc(sizeof(Template));
+    Template* last = create_link(names, first, num, 0);
 
     if(num == 1)
     {
@@ -228,20 +230,22 @@ Template
 
     print_template_info(first);
 
+    for(guint8 i = 0; i<num; i++)
+        free(names[i]);
     free(names);
 
     return first;
 }
 
 void
-destroy_templates(Template *t)
+destroy_templates(Template* t)
 {
     if(!t->was_last)
         destroy_templates(t->next);
     
     free(t->filename);
 
-    int i;
+    guint8 i;
     for(i = 0; i<t->hole_count; i++)
     {
         free(t->hole_pos[i]);
@@ -252,9 +256,9 @@ destroy_templates(Template *t)
 }
 
 int
-main(int argc, char **argv)
+main(int argc, gchar** argv)
 {
-    Template *first = init_templates();
+    Template* first = init_templates();
     destroy_templates(first);
     free(first);
 
