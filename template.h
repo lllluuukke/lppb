@@ -3,31 +3,32 @@
 
 #include<stdlib.h>
 
-typedef enum {FALSE, TRUE} bool;
+#include<glib.h>
 
 typedef struct _template Template;
 
 struct _template
 {
-    char *filename;
+    guint8 unique_id;
+    gchar* filename;
 
-    int width;
-    int height;
+    guint16 width;
+    guint16 height;
 
-    int hole_count;
-    int **hole_pos;
-    int **hole_size;
+    guint8 hole_count;
+    guint16** hole_pos;
+    guint16** hole_size;
     
-    bool was_first;
-    bool was_last;
+    gboolean was_first;
+    gboolean was_last;
 
-    Template *prev;
-    Template *next;
+    Template* prev;
+    Template* next;
 };
 
-Template *init_templates();
+Template* init_templates();
 
-void destroy_templates(Template *t);
+void destroy_templates(Template* t);
 
 #endif
 
