@@ -1,0 +1,6 @@
+{
+   ignore_unversioned_libs
+   Memcheck:Leak
+   ...
+   obj:/usr/lib/libMagickWand-6.Q16HDRI.so.2.0.0
+}
