@@ -1,4 +1,4 @@
-#ifndef _TEMPLATE_H_
+#ifndef _TEMPLATE_H
 #define _TEMPLATE_H
 
 #include<stdlib.h>
