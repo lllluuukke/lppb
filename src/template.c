@@ -6,6 +6,7 @@
 #include<wand/magick_wand.h>
 
 #include"template.h"
+#include"dsets.h"
 
 #define PATH_TO_TEMPLATES "./templates"
 
@@ -37,15 +38,43 @@ print_template_info(const Template* t)
         print_template_info(t->next);
 }
 
+/********************** get_holes_from_alpha using dsets **********************/
+static void
+get_holes_from_alpha_dsets(Template* t, gboolean** alpha_map)
+{
+    t->hole_count= 0;
+    gint64* ds = malloc(sizeof(gint64)*t->width*t->height);
+
+    for(guint16 y = 0; y < t->height; y++) // traverse all rows
+    {
+        for(guint16 x = 0; x < t->width-1; x++)
+        {
+            if(!alpha_map[x][y] && !alpha_map[x+1][y])
+                merge(ds, (gint64)(x+y*t->width), (gint64)(x+1+y*t->width));
+        }
+    }
+
+    for(guint16 x = 0; x < t->width; x++) // traverse all columns
+    {
+        for(guint16 y = 0; y < t->height-1; y++)
+        {
+            if(!alpha_map[x][y] && !alpha_map[x][y+1])
+                merge(ds, (gint64)(x+y*t->width), (gint64)(x+(y+1)*t->width));
+        }
+    }
+
+    free(ds);
+}
+/*************************** scan_holes using dsets ***************************/
+
 static void
 get_holes_from_alpha(Template* t, gboolean** alpha_map)
 {
     t->hole_count= 0;
 
-    guint16 i, j;
-    for(i = 0; i<t->height-1; i++)
+    for(guint16 i = 0; i<t->height-1; i++)
     {
-        for(j = 0; j<t->width-1; j++)
+        for(guint16 j = 0; j<t->width-1; j++)
         {
             // Start (upper left corner) of the hole
             if(((i == 0 && j == 0) || //start on top-left corner of image
@@ -106,11 +135,10 @@ scan_holes(Template* t, MagickWand* wand)
     PixelWand* pw = NewPixelWand();
 
     // Map alpha value of every pixel
-    guint16 i, j;
-    for(i = 0; i<t->height; i++)
+    for(guint16 i = 0; i<t->height; i++)
     {
         gboolean* alpha_line = malloc(sizeof(gboolean* )*t->width);
-        for(j = 0; j<t->width; j++)
+        for(guint16 j = 0; j<t->width; j++)
         {
             MagickGetImagePixelColor(wand, j, i, pw);
             alpha_line[j] = (int)PixelGetAlpha(pw);
@@ -122,7 +150,8 @@ scan_holes(Template* t, MagickWand* wand)
     DestroyPixelWand(pw);
 
     // Finding rectangular holes in a template
-    get_holes_from_alpha(t, alpha_map);
+    /*get_holes_from_alpha(t, alpha_map);*/
+    get_holes_from_alpha_dsets(t, alpha_map);
     
     for(i = 0; i<t->height; i++)
         free(alpha_map[i]);
