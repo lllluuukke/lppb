@@ -6,7 +6,6 @@
 #include<wand/magick_wand.h>
 
 #include"template.h"
-#include"dsets.h"
 
 #define PATH_TO_TEMPLATES "./templates"
 
@@ -195,7 +194,7 @@ static char
         closedir(d);
     }
 
-   * count_ext = count;
+    *count_ext = count;
     return name;
 }
 
@@ -252,6 +251,8 @@ destroy_templates(Template* t)
     }
     free(t->hole_pos);
     free(t->hole_size);
+
+    free(t);
 }
 
 int
@@ -259,7 +260,6 @@ main(int argc, gchar** argv)
 {
     Template* first = init_templates();
     destroy_templates(first);
-    free(first);
 
     return 0;
 }

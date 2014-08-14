@@ -33,7 +33,7 @@ main.o: src/main.c
 gui.o: src/gui.c include/gui.h
 	$(CC) $(CFLAGS) $(GTKFLAGS) $<
 
-template.o: src/template.c include/template.h include/dsets.h
+template.o: src/template.c include/template.h
 	$(CC) $(CFLAGS) $(GLIB_FLAGS) $(MWFLAGS) $<
 
 clean:
