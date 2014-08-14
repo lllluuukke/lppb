@@ -38,35 +38,6 @@ print_template_info(const Template* t)
         print_template_info(t->next);
 }
 
-/********************** get_holes_from_alpha using dsets **********************/
-static void
-get_holes_from_alpha_dsets(Template* t, gboolean** alpha_map)
-{
-    t->hole_count= 0;
-    gint64* ds = malloc(sizeof(gint64)*t->width*t->height);
-
-    for(guint16 y = 0; y < t->height; y++) // traverse all rows
-    {
-        for(guint16 x = 0; x < t->width-1; x++)
-        {
-            if(!alpha_map[x][y] && !alpha_map[x+1][y])
-                merge(ds, (gint64)(x+y*t->width), (gint64)(x+1+y*t->width));
-        }
-    }
-
-    for(guint16 x = 0; x < t->width; x++) // traverse all columns
-    {
-        for(guint16 y = 0; y < t->height-1; y++)
-        {
-            if(!alpha_map[x][y] && !alpha_map[x][y+1])
-                merge(ds, (gint64)(x+y*t->width), (gint64)(x+(y+1)*t->width));
-        }
-    }
-
-    free(ds);
-}
-/*************************** scan_holes using dsets ***************************/
-
 static void
 get_holes_from_alpha(Template* t, gboolean** alpha_map)
 {
@@ -150,10 +121,9 @@ scan_holes(Template* t, MagickWand* wand)
     DestroyPixelWand(pw);
 
     // Finding rectangular holes in a template
-    /*get_holes_from_alpha(t, alpha_map);*/
-    get_holes_from_alpha_dsets(t, alpha_map);
+    get_holes_from_alpha(t, alpha_map);
     
-    for(i = 0; i<t->height; i++)
+    for(gint16 i = 0; i<t->height; i++)
         free(alpha_map[i]);
     free(alpha_map);
 }

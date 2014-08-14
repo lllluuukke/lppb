@@ -12,10 +12,10 @@ MWFLAGS = `MagickWand-config --cflags`
 MWLIBS = `MagickWand-config --ldflags --libs`
 
 BOOTH = booth
-BOOTH_OBJS = gui.o main.o template.o dsets.o
+BOOTH_OBJS = gui.o main.o template.o
 
 TEMPLATE = template
-TEMPLATE_OBJS = template.o dsets.o
+TEMPLATE_OBJS = template.o
 
 .PHONY: clean all
 
@@ -35,9 +35,6 @@ gui.o: src/gui.c include/gui.h
 
 template.o: src/template.c include/template.h include/dsets.h
 	$(CC) $(CFLAGS) $(GLIB_FLAGS) $(MWFLAGS) $<
-
-dsets.o: src/dsets.c include/dsets.h
-	$(CC) $(CFLAGS) $(GLIB_FLAGS) $<
 
 clean:
 	rm -f *.o $(BOOTH) $(TEMPLATE)
