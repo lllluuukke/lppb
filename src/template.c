@@ -38,7 +38,7 @@ print_template_info(const Template* t)
 }
 
 static void
-get_holes_from_alpha(Template* t, gboolean** alpha_map)
+get_holes_from_alpha(Template* t, guint8** alpha_map)
 {
     t->hole_count= 0;
 
@@ -56,17 +56,17 @@ get_holes_from_alpha(Template* t, gboolean** alpha_map)
             {
                 if(!t->hole_count)
                 {
-                    t->hole_pos = malloc(sizeof(guint16* ));
-                    t->hole_size= malloc(sizeof(guint16* ));
+                    t->hole_pos = malloc(sizeof(guint16*));
+                    t->hole_size= malloc(sizeof(guint16*));
                 }
                 else
                 {
                     t->hole_pos =
                         realloc(t->hole_pos,
-                                sizeof(guint16* )*(t->hole_count+1));
-                    t->hole_size =                                          
+                                sizeof(guint16*)*(t->hole_count+1));
+                    t->hole_size =                                         
                         realloc(t->hole_size,
-                                sizeof(guint16* )*(t->hole_count+1));
+                                sizeof(guint16*)*(t->hole_count+1));
                 }
 
                 guint16* pos = malloc(sizeof(guint16)*2);
@@ -99,25 +99,31 @@ get_holes_from_alpha(Template* t, gboolean** alpha_map)
 }
 
 static void
-scan_holes(Template* t, MagickWand* wand)
+map_alpha(Template* t, MagickWand* wand, guint8** alpha_map)
 {
-    gboolean** alpha_map = malloc(sizeof(gboolean* )*t->width);
     PixelWand* pw = NewPixelWand();
 
-    // Map alpha value of every pixel
-    for(guint16 i = 0; i<t->height; i++)
+    for(guint16 y = 0; y < t->height; y++)
     {
-        gboolean* alpha_line = malloc(sizeof(gboolean* )*t->width);
-        for(guint16 j = 0; j<t->width; j++)
+        guint8* alpha_line = malloc(sizeof(guint8)*t->width);
+        for(guint16 x = 0; x < t->width; x++)
         {
-            MagickGetImagePixelColor(wand, j, i, pw);
-            alpha_line[j] = (int)PixelGetAlpha(pw);
+            MagickGetImagePixelColor(wand, x, y, pw);
+            alpha_line[x] = (guint8)PixelGetAlpha(pw);
             ClearPixelWand(pw);
         }
-        alpha_map[i] = alpha_line;
+        alpha_map[y] = alpha_line;
     }
 
-    DestroyPixelWand(pw);
+    pw = DestroyPixelWand(pw);
+}
+
+static void
+scan_holes(Template* t, MagickWand* wand)
+{
+    guint8** alpha_map = malloc(sizeof(guint8*)*t->height);
+
+    map_alpha(t, wand, alpha_map);
 
     // Finding rectangular holes in a template
     get_holes_from_alpha(t, alpha_map);
@@ -145,8 +151,8 @@ get_template_info(Template* this)
     MagickWandTerminus();
 }
 
-static Template
-*create_link(gchar** name, Template* this, const guint8 count, const guint8 id)
+static Template*
+create_link(gchar** name, Template* this, const guint8 count, const guint8 id)
 {
     this->filename = malloc(strlen(name[0])+1);
     strcpy(this->filename, name[0]);
@@ -169,8 +175,8 @@ static Template
     }
 }
 
-static char
-**list_templates(gchar** name, guint8* count_ext)
+static char**
+list_templates(gchar** name, guint8* count_ext)
 {
     guint8 count = 0;
     DIR* d;
@@ -198,15 +204,15 @@ static char
     return name;
 }
 
-Template
-*init_templates()
+Template*
+init_templates()
 {
     /* Read template file names from ./templates */
     guint8 num= 0;
     gchar** names = malloc(sizeof(char*));
 
     names = list_templates(names, &num);
-    if(num == 0)
+    if(!num)
         fprintf(stderr, "ERROR: No template file found.\n");
 
     /* TEST: populate image filenames */
@@ -228,7 +234,7 @@ Template
 
     print_template_info(first);
 
-    for(guint8 i = 0; i<num; i++)
+    for(guint8 i = 0; i < num; i++)
         free(names[i]);
     free(names);
 
